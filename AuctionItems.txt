@@ -1,0 +1,5 @@
+JavaforDummies, Books, 19.99, 40
+LonghornShirt, Clothes/Clothing, 49.99, 60
+UTPopsocket, Accessories, 2.99, 10
+ECEDellLaptop, Technology, 199.99, 5000
+LonghornPlushie, Toys, 44.99, 55
