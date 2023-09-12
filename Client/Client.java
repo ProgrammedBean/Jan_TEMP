@@ -65,6 +65,11 @@ public class Client extends Application{
 	private Button bidBtn;
 	private Label currItemDescLabel;
 	private Label currItemDesc;
+	private Label currItemStartDateLabel;
+	private Label currItemStartDate;
+	private Label currItemEndDateLabel;
+	private Label currItemEndDate;
+	private static Label bidValLbl;
 	private static TextField bidValue;
 	private Label highestBidMessage;
 	private Label yourBidMessage;
@@ -273,21 +278,15 @@ public class Client extends Application{
 		window.setTitle("Auction Client - login");
 		
 		// Initialize primary condition of primary Stage
-		
 		Scene scene1 = makeLoginScene();
 		
-		// Set up secondary condition of primaryStage
-		
-		// makeBiddingServerScene();
-		
 		// Start first GUI
-		
 		loginHandler(); // event handler
 		window.setScene(scene1); // Display scene1 at beginning
 		window.show();
 	}
 	
-	private Scene makeLoginScene() { // initialize login window
+	private Scene makeLoginScene() {
 		// Login window registration
 		window.setTitle("Chat Room - login");
 		
@@ -303,6 +302,7 @@ public class Client extends Application{
 		username = new TextField();
 		username.setPromptText("username");
 		GridPane.setConstraints(username, 1, 0);
+		grid1.getChildren().addAll(userLbl, username);
 		
 		// password field
 		passLbl = new Label("password:");
@@ -310,21 +310,22 @@ public class Client extends Application{
 		password = new TextField();
 		password.setPromptText("password");
 		GridPane.setConstraints(password, 1, 1);
+		grid1.getChildren().addAll(passLbl, password);
 		
 		// login button
 		loginBtn = new Button("login");
 		GridPane.setConstraints(loginBtn, 0, 2);
+		grid1.getChildren().add(loginBtn);
 		
 		// login as guest button
 		registerBtn = new Button("register");
 		GridPane.setConstraints(registerBtn, 0, 3);
+		grid1.getChildren().add(registerBtn);
 		
 		// quit button
 		quitBtn1 = new Button("quit");
 		GridPane.setConstraints(quitBtn1, 0, 4);
-		
-		// put labels, buttons, and text fields in grid
-		grid1.getChildren().addAll(username, userLbl, password, passLbl, loginBtn, registerBtn, quitBtn1);
+		grid1.getChildren().add(quitBtn1);
 		
 		// fill stage with scene
 		return new Scene(grid1, 300, 200);
@@ -484,67 +485,81 @@ public class Client extends Application{
 		grid2.getChildren().add(items);
 		
 		// amount of bid field
+		bidValLbl = new Label("$");
+		GridPane.setConstraints(bidValLbl, 2, 0);
 		bidValue = new TextField();
 		bidValue.setPromptText("value of bid");
-		GridPane.setConstraints(bidValue, 2, 0);
-		grid2.getChildren().add(bidValue);
-		
-		// bid button
+		GridPane.setConstraints(bidValue, 3, 0);
 		bidBtn = new Button("bid item!");
-		GridPane.setConstraints(bidBtn, 3, 0);
-		grid2.getChildren().add(bidBtn);
+		GridPane.setConstraints(bidBtn, 4, 0);
+		grid2.getChildren().addAll(bidValLbl, bidValue, bidBtn);
 		
 		// item description
-		currItemDescLabel = new Label("Description");
+		currItemDescLabel = new Label("Description:");
 		currItemDescLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(currItemDescLabel, 0, 1);
 		currItemDesc = new Label("example description of this product.");
 		GridPane.setConstraints(currItemDesc, 1, 1);
-//		GridPane.setRowIndex(currItemDesc, 8);
 		GridPane.setColumnSpan(currItemDesc, 3);
 		grid2.getChildren().addAll(currItemDescLabel, currItemDesc);
+		
+		// bid creation date
+		currItemStartDateLabel = new Label("Start Date:");
+		currItemStartDateLabel.setStyle("-fx-font-weight: bold");
+		GridPane.setConstraints(currItemStartDateLabel, 0, 2);
+		currItemStartDate = new Label("0000-00-00 00:00:00");
+		GridPane.setConstraints(currItemStartDate, 1, 2);
+		grid2.getChildren().addAll(currItemStartDateLabel, currItemStartDate);
+		
+		// bid end date
+		currItemEndDateLabel = new Label("End Date:");
+		currItemEndDateLabel.setStyle("-fx-font-weight: bold");
+		GridPane.setConstraints(currItemEndDateLabel, 0, 3);
+		currItemEndDate = new Label("0000-00-00 00:00:00");
+		GridPane.setConstraints(currItemEndDate, 1, 3);
+		grid2.getChildren().addAll(currItemEndDateLabel, currItemEndDate);
 		
 		// current Highest Bid Label
 		highestBidMessage = new Label("Highest Bid:");
 		highestBidMessage.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(highestBidMessage, 0, 2);
+		GridPane.setConstraints(highestBidMessage, 0, 4);
 		highestBid = new Label("n/a");
-		GridPane.setConstraints(highestBid, 1, 2);
+		GridPane.setConstraints(highestBid, 1, 4);
 		grid2.getChildren().addAll(highestBidMessage, highestBid);
 		
 		// client's Current Bid Label
 		yourBidMessage = new Label("Your Bid:");
 		yourBidMessage.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(yourBidMessage, 0, 3);
+		GridPane.setConstraints(yourBidMessage, 0, 5);
 		myBid = new Label("none");
-		GridPane.setConstraints(myBid, 1, 3);
+		GridPane.setConstraints(myBid, 1, 5);
 		grid2.getChildren().addAll(yourBidMessage, myBid);
 		
 		// logout button
 		logoutBtn = new Button("logout");
-		GridPane.setConstraints(logoutBtn, 0, 5);
+		GridPane.setConstraints(logoutBtn, 0, 6);
 		grid2.getChildren().add(logoutBtn);
 		
 		// quit button
 		quitBtn2 = new Button("quit");
-		GridPane.setConstraints(quitBtn2, 0, 6);
+		GridPane.setConstraints(quitBtn2, 1, 6);
 		grid2.getChildren().add(quitBtn2);
 		
 		// bid log (history)
 		historyLabel = new Label("Bidding Log");
 		historyLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setRowIndex(historyLabel, 7);
-		GridPane.setColumnSpan(historyLabel, 4);
+		GridPane.setColumnSpan(historyLabel, 5);
 		GridPane.setHalignment(historyLabel, javafx.geometry.HPos.CENTER);
 		historyDisplay = new TextArea();
 		historyDisplay.setPrefHeight(100.0);
 		historyDisplay.setEditable(false);
-		GridPane.setRowIndex(historyDisplay, 8);
-		GridPane.setColumnSpan(historyDisplay, 4);
+		GridPane.setRowIndex(historyDisplay, 9);
+		GridPane.setColumnSpan(historyDisplay, 5);
 //		GridPane.setFillWidth(historyDisplay, true);
-		historyBtn = new Button("history");
-		GridPane.setConstraints(historyBtn, 0, 4);
-		grid2.getChildren().addAll(historyLabel, historyDisplay, historyBtn);
+//		historyBtn = new Button("history");
+//		GridPane.setConstraints(historyBtn, 0, 4);
+		grid2.getChildren().addAll(historyLabel, historyDisplay);
 		
 		// current highest bid display 
 //		bidDisplay = new TextArea("Current Highest Bid");
@@ -558,15 +573,15 @@ public class Client extends Application{
 		// chat display
 		chatLabel = new Label("Chat");
 		chatLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setRowIndex(chatLabel, 9);
-		GridPane.setColumnSpan(chatLabel, 4);
+		GridPane.setRowIndex(chatLabel, 10);
+		GridPane.setColumnSpan(chatLabel, 5);
 		GridPane.setHalignment(chatLabel, javafx.geometry.HPos.CENTER);
 		chatDisplay = new TextArea();
 		chatDisplay.setPrefHeight(80.0);
 		chatDisplay.setEditable(false);
-		GridPane.setRowIndex(chatDisplay, 10);
-		GridPane.setColumnSpan(chatDisplay, 4);
-		GridPane.setFillWidth(chatDisplay, true);
+		GridPane.setRowIndex(chatDisplay, 11);
+		GridPane.setColumnSpan(chatDisplay, 5);
+//		GridPane.setFillWidth(chatDisplay, true);
 		grid2.getChildren().addAll(chatLabel, chatDisplay);
 		
 		// text display 
@@ -574,8 +589,8 @@ public class Client extends Application{
 		chatInput.setPrefHeight(55.0);
 		chatInput.setEditable(true);
 		chatInput.setWrapText(true);
-		GridPane.setRowIndex(chatInput, 11);
-		GridPane.setColumnSpan(chatInput, 4);
+		GridPane.setRowIndex(chatInput, 12);
+		GridPane.setColumnSpan(chatInput, 5);
 		GridPane.setFillWidth(chatInput, true);
 		grid2.getChildren().add(chatInput);
 		
