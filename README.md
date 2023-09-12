@@ -1,19 +1,25 @@
 # Bidding Server Client Network
 
 This project demonstrates a server-client architecture. The goal is to design and implement an
-online auctionserver and client backend.
+online bidding/auction server and graphical user interface (GUI) client..
 
 All communication between the server and clients will occur through sockets, therefore the program will
-work even if clients are not run on same machine.
+work even if server and client are not run on same machine.
+
+The GUI client was implemented using the JavaFX Library. This allows users to send/receive data through
+the use of JSON requests and responses.
+
+The Server handles each clients' request by accessing an SQL Database. This is done by interacting with
+a MySQL Connector that permits the execution of SQL code in java, which is implemented in the server
+through a library of functions.
 
 
-# Server Side:
+## Server Side:
 
-1. As it starts up, the server reads from Auction_Items.txt containing their descriptions and minimum
-acceptable prices.
+1. As it starts up, the server reads all items from the SQL Database containing their relevant data.
 
-2. As customers place valid bids, the server updates the prices and informs all active customers of the
-new highest bid.
+2. As customers place valid bids on a particular item, the server updates the prices and informs all
+active customers of the new highest bid on that item.
 
 3. The server handles multiple auction items and customers concurrently.
 
@@ -22,7 +28,7 @@ clients can bid on the same item at the same time in a thread-safe way.
 
 5. Console will be used to output logs of the server (status and user information).
 
-# Client Side:
+## Client Side:
 
 1. The client provides each customer with an appealing JavaFX graphical user interface.
 
