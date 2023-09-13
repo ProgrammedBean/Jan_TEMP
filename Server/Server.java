@@ -5,9 +5,6 @@ import java.net.Socket;
 import java.sql.Statement;
 import java.util.Observable;
 
-import com.google.gson.Gson;
-import Client.*;
-
 public class Server extends Observable{
 
 	private static SQL_Connection sql_conn;
@@ -52,26 +49,18 @@ public class Server extends Observable{
 		}
 	}
 	
-	protected String processMessage(String gsonMessage, String speaker) {
-		String output = "";
+	@SuppressWarnings("static-access")
+	protected void processMessage(String gsonMessage) {
 		try {
-			// message to gson
-			Gson gson = new Gson();
-			Command cmd = gson.fromJson(gsonMessage, Command.class);
-			cmd.input = speaker + ": " + cmd.input;
-			
-			// determine output
-			output = gson.toJson(cmd);
-			
-			// notify all clients
+			// notify all clients in server
 			this.setChanged();
-			this.notifyObservers(output);
+			this.notifyObservers(gsonMessage);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println(sql_conn.RED + "Not able to send to client" + sql_conn.DEFAULT);
 		}
-		return output;
 	}
 	
+	@SuppressWarnings("static-access")
 	protected boolean loginAttempt(String username, String password) {
 			
 		// create SQL command
@@ -91,6 +80,7 @@ public class Server extends Observable{
 		return guests;
 	}
 	
+	@SuppressWarnings("static-access")
 	protected boolean registerAttempt(String username, String password) {
 		// determine if name already exists in db
 		String sql = "SELECT name FROM user_list "
@@ -117,6 +107,7 @@ public class Server extends Observable{
 		}
 	}
 	
+	@SuppressWarnings("static-access")
 	public String[] get_auction_items() {
 		String[] auction_items = this.sql_conn.read_col_sql_cmd("SELECT name FROM product_list");
 		if(auction_items != null)
@@ -124,6 +115,7 @@ public class Server extends Observable{
 		return new String[] {"no items in server"};
 	}
 	
+	@SuppressWarnings("static-access")
 	public String[] get_auction_info_of(String item) {
 		
 		// prepare sql command and labels to search for

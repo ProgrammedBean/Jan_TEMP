@@ -1,4 +1,4 @@
-package Client;
+package Server;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,8 +11,8 @@ public class SQL_Connection {
 	private Connection conn;
 	private Statement st;
 	
-	private static final String RED = "\\u001B[31m";
-	private static final String DEFAULT = "\\u001B[0m";
+	public static final String RED = "\u001B[31m";
+	public static final String DEFAULT = "\u001B[0m";
 	
 	public SQL_Connection(Statement st) {
 		this.st = st;

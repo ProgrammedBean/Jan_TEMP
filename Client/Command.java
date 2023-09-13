@@ -15,8 +15,8 @@ public class Command {
 	public String command;
 	public String input;
 	public int port;
-	public String username;
-	public String password;
+	private String username = "";
+	private String password = "";
 	public String item;
 	public String[] auction_arr;
 	public String description;
@@ -35,6 +35,22 @@ public class Command {
 		this.password = password;
 	}
 	
+	public void set_username(String username) {
+		this.username = username;
+	}
+	
+	public void set_password(String password) {
+		this.password = password;
+	}
+	
+	public String get_username() {
+		return this.username;
+	}
+	
+	public String get_password() {
+		return this.password;
+	}
+	
 	protected void clientPort(int port) {
 		this.port = port;
 	}
@@ -45,5 +61,9 @@ public class Command {
 	
 	protected void setDescription(String desc) {
 		description = desc;
+	}
+
+	public void setCommand(String cmd) {
+		this.command = cmd;
 	}
 }

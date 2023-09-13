@@ -21,7 +21,7 @@ public class ClientHandler implements Runnable, Observer {
 	private int port;
 	private String user;
 	
-	Gson gsonMessage;
+//	Gson gsonMessage;
 	Command cmd;
 	
 	protected ClientHandler(Server server, Socket clientSocket, int port) {
@@ -43,11 +43,10 @@ public class ClientHandler implements Runnable, Observer {
 		toClient.flush();
 	}
 	
-	protected void sendToClient(String message) {
-		Gson gsonMessage = new Gson();
-		Command cmd = gsonMessage.fromJson(message, Command.class);
-		System.out.println("Sending to client "+ port + ": " + cmd.input);
-		toClient.println(message);
+	protected void sendToClient(Command cmd) {		
+		Gson gsonMessage = (new GsonBuilder()).create();
+		System.out.println("Server Sent: " + gsonMessage.toJson(cmd));
+		toClient.println(gsonMessage.toJson(cmd));
 		toClient.flush();
 	}
 	
@@ -56,9 +55,11 @@ public class ClientHandler implements Runnable, Observer {
 		String input;
 		try {
 			while((input = fromClient.readLine()) != null) {
+				
+				System.out.println("Server Received: " + input);
+				
 				// obtain message from json
-				gsonMessage = new Gson();
-				cmd = gsonMessage.fromJson(input, Command.class);
+				cmd = new Gson().fromJson(input, Command.class);
 				
 				// if the command is quit/exit
 				if(cmd.command.equals("quit")) {
@@ -70,36 +71,36 @@ public class ClientHandler implements Runnable, Observer {
 				if(cmd.command.equals("message")) {
 					Command cmdSend = new Command(cmd.input, cmd.command, port);
 					Gson gsonMessageSend = (new GsonBuilder()).create();
+					
 					if(user.equals("")) {
-						server.processMessage(gsonMessageSend.toJson(cmdSend), ""+cmd.port);
+						cmdSend.input = cmd.port + ": " + cmd.input;
+						server.processMessage(gsonMessageSend.toJson(cmdSend));
 					}
 					else {
-						server.processMessage(gsonMessageSend.toJson(cmdSend), user);
+						cmdSend.input = user + ": " + cmd.input;
+						server.processMessage(gsonMessageSend.toJson(cmdSend));
 					}
 				}
 				
 				// if the command is register attempt
 				if(cmd.command.equals("register")) {
 					String regStatus = "this username is already taken";
-					if(server.registerAttempt(cmd.username, cmd.password))
+					if(server.registerAttempt(cmd.get_username(), cmd.get_password()))
 						regStatus = "registration successful";
-					cmd = new Command(regStatus, "register", port);
-					sendToClient(gsonMessage.toJson(cmd));
+					cmd.input = regStatus;
+					sendToClient(cmd);
 				}
 				
 				// if the command is login attempt
 				if(cmd.command.equals("login")) {
-					if(server.loginAttempt(cmd.username, cmd.password)) {
-						user = cmd.username; // port now has username
-						// attempt passed
-						cmd = new Command("2", "login", port);
-						gsonMessage = (new GsonBuilder()).create();
-						sendToClient(gsonMessage.toJson(cmd));
+					if(server.loginAttempt(cmd.get_username(), cmd.get_password())) {
+						user = cmd.get_username();
+						cmd.input = "2";
+						sendToClient(cmd);
 					}
 					else { // attempt failed
-						cmd = new Command("incorrect user/password", "login", port);
-						gsonMessage = (new GsonBuilder()).create();
-						sendToClient(gsonMessage.toJson(cmd));
+						cmd.input = "incorrect user/password";
+						sendToClient(cmd);
 					}
 				}
 				
@@ -108,25 +109,22 @@ public class ClientHandler implements Runnable, Observer {
 					int guest = server.loginGuest();
 					user = "Guest_"+port+""+guest;
 					cmd = new Command("Guest_"+port+""+guest, "guest", port);
-					gsonMessage = (new GsonBuilder()).create();
-					sendToClient(gsonMessage.toJson(cmd));
+					sendToClient(cmd);
 				}
 				
 				// if the command is guestList
 				if(cmd.command.equals("itemList")) {
 					String auction_items[] = server.get_auction_items();
-					cmd = new Command("", "itemList", port);
+					cmd.input = "";
 					cmd.auction_arr = auction_items;
-					gsonMessage = (new GsonBuilder()).create();
-					sendToClient(gsonMessage.toJson(cmd));
+					sendToClient(cmd);
 				}
 				
 				// if the command is logout
 				if(cmd.command.equals("logout")) {
-					user = cmd.input; // user field is empty
-					cmd = new Command("logout", "logout", port);
-					gsonMessage = (new GsonBuilder()).create();
-					sendToClient(gsonMessage.toJson(cmd));
+					user = ""; // user field is empty
+					cmd.input = "logout";
+					sendToClient(cmd);
 				}
 				
 				// if the command is selection
@@ -136,44 +134,37 @@ public class ClientHandler implements Runnable, Observer {
 					cmd.input = "success";
 					if(auction_info == null)
 						cmd.input = "fail";
-					gsonMessage = (new GsonBuilder()).create();
-					sendToClient(gsonMessage.toJson(cmd));
+					sendToClient(cmd);
 				}
 				
 				// if the command is a bid
 				if(cmd.command.equals("bid")) {
 					int bidStatus = server.validBid(cmd.input, cmd.item);
 					if(bidStatus == 1) { // invalid (1)
-						cmd = new Command("1", "bid", port);
-						gsonMessage = (new GsonBuilder()).create();
-						sendToClient(gsonMessage.toJson(cmd));
+						cmd.input = "1";
+						sendToClient(cmd);
 					}
 					else if(bidStatus == 2) { // valid (2)
 						
 						// notify the clients
-						Command cmdSend = new Command(cmd.input, cmd.command, port);
-						cmdSend.item = cmd.item;
-						cmdSend.description = server.getDesc(cmd.item);
-						Gson gsonMessageSend = (new GsonBuilder()).create();
+						cmd.description = server.getDesc(cmd.item);
 						
 						if(user.equals("")) {
-							server.processMessage(gsonMessageSend.toJson(cmdSend), ""+cmd.port);
+//							server.processMessage(gsonMessageSend.toJson(cmdSend), ""+cmd.port);
 						}
 						else {
-							server.processMessage(gsonMessageSend.toJson(cmdSend), user);
+//							server.processMessage(gsonMessageSend.toJson(cmdSend), user);
 						}
 						
 						// send the client back the results
-						cmdSend = new Command("2", "bid", port);
-						gsonMessageSend = (new GsonBuilder()).create();
-						sendToClient(gsonMessageSend.toJson(cmdSend));
+						cmd.input = "2";
+						sendToClient(cmd);
 						
 					}
 					else { // time out (3)
 						// send the client back the results
-						Command cmdSend = new Command("3", "bid", port);
-						Gson gsonMessageSend = (new GsonBuilder()).create();
-						sendToClient(gsonMessageSend.toJson(cmdSend));
+						cmd.input = "3";
+						sendToClient(cmd);
 					}
 				}
 				
@@ -198,12 +189,12 @@ public class ClientHandler implements Runnable, Observer {
 		Command cmd = gsonSend.fromJson((String)arg, Command.class);		
 		// if command is message
 		if(cmd.command.equals("message")) {
-			sendToClient(gsonSend.toJson(cmd));
+			sendToClient(cmd);
 		}
 		// if command is update
 		if(cmd.command.equals("bid")) {
 			cmd.command = "update";
-			sendToClient(gsonSend.toJson(cmd));
+			sendToClient(cmd);
 		}
 	}
 }

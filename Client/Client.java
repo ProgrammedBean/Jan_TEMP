@@ -1,13 +1,6 @@
-/*
- * FinalProject_Client Client.java
- * EE422C Final Project submission by
- * Replace <...> with your actual data.
- * Jan Rubio
- * jcr4698
- * 17125
- * Slip days used: <1>
- * Spring 2021
- */
+/* Auction Network Client.java
+ * Project created by Jan Rubio
+ * Start Date: Spring 2021 */
 
 package Client;
 
@@ -15,27 +8,24 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
-import javafx.geometry.Insets;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+
 
 public class Client extends Application{
 	
@@ -45,57 +35,17 @@ public class Client extends Application{
 	private static BufferedReader fromServer;
 	private static PrintWriter toServer;
 	private Scanner consoleInput;
-	private static int clientPort;
 	
-	// GUI Fields for Login
+	// GUI Fields
 	private static Stage window;
-	private static GridPane grid1;
-	private static TextField username;
-	private static Label userLbl;
-	private static TextField password;
-	private static Label passLbl;
-	private static Button loginBtn;
-	private static Button registerBtn;
-	private static Label invalidLog;
-	private static Button quitBtn1;
-    
-	// GUI fields for Auction
-	private static GridPane grid2;
-	private static ChoiceBox<String> items;
-	private Button bidBtn;
-	private Label currItemDescLabel;
-	private Label currItemDesc;
-	private Label currItemStartDateLabel;
-	private Label currItemStartDate;
-	private Label currItemEndDateLabel;
-	private Label currItemEndDate;
-	private static Label bidValLbl;
-	private static TextField bidValue;
-	private Label highestBidMessage;
-	private Label yourBidMessage;
-	private Label myBid;
-	private static Label highestBid;
-	private Button historyBtn;
-	private Label historyLabel;
-    private TextArea historyDisplay;
-    private Label chatLabel;
-	private TextArea chatDisplay;
-	private TextArea chatInput;
-	private Button logoutBtn;
-	private Button quitBtn2;
-	
-	// GUI fields for Registration
-	private static GridPane grid3;
-	private TextField usernameRegister;
-	private TextField passwordRegister;
-	private TextField confirmPasswordRegister;
-	private Label missmatchedPassword;
-	private static Label userTaken;
-	private Button registerMeBtn;
+	private static Button quitBtn = new Button("quit");
+	private static Login_Scene login_scene;
+	private static Auction_Scene auction_scene;
+	private static Registration_Scene registration_scene;
 	
 	// Client Information Variables
 	public static String clientUsername = "";
-	public static String clientPassword = "";
+	private static int clientPort = 0;
 	public static Command cmd = new Command(null, null, 0);
 	
 	// Auction Variables
@@ -126,8 +76,10 @@ public class Client extends Application{
 		}
 	}
 	
-	protected void sendToServer(String jsonMessage) {
-		toServer.println(jsonMessage);
+	protected void sendToServer(Command cmd) {		
+		Gson gsonMessage = (new GsonBuilder()).create();
+		System.out.println("Client Sent: " + gsonMessage.toJson(cmd));
+		toServer.println(gsonMessage.toJson(cmd));
 		toServer.flush();
 	}
 	
@@ -138,137 +90,138 @@ public class Client extends Application{
 	
 	private void setUpNetworking() throws Exception {
 		// Connect socket to server socket
-		socket = new Socket(HOST, 4242);
-		System.out.println("Connecting to..." + socket);
-		
-		// initialize input and output
-		InputStreamReader readSock = new InputStreamReader(socket.getInputStream());
-		fromServer = new BufferedReader(readSock);
-		toServer = new PrintWriter(socket.getOutputStream());
-		
-		// create a reader task
-		Thread readerThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				String input;
-				try { // wait for output from server
-					while((input = fromServer.readLine()) != null) {
-						// obtain message from json
-						System.out.println(input);
-						cmd = new Gson().fromJson(input, Command.class);
-						
-						if(cmd.command.equals("register")) { // register command
-							if(cmd.input.equals("registration successful")) {
-								Platform.runLater(new Runnable() {
+		try {
+			
+			// attempt to connect
+			socket = new Socket(HOST, 4242);
+			System.out.println("Connecting to..." + socket);
+			
+			// set client port from connection
+			clientPort = socket.getLocalPort();
+			
+			// initialize input and output
+			InputStreamReader readSock = new InputStreamReader(socket.getInputStream());
+			fromServer = new BufferedReader(readSock);
+			toServer = new PrintWriter(socket.getOutputStream());
+			
+			// create a reader task
+			Thread readerThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					String input;
+					try { // wait for output from server
+						while((input = fromServer.readLine()) != null) {
+							
+							System.out.println("Client Received: " + input);
+							
+							// obtain message from json
+							cmd = new Gson().fromJson(input, Command.class);
+							
+							if(cmd.command.equals("register")) { // register command
+								if(cmd.input.equals("registration successful")) {
+									Platform.runLater(new Runnable() {
+											@Override
+											public void run() {
+												make_login_scene(window, quitBtn);
+											}
+									}); // Display primaryStage
+								}
+								else {
+									Platform.runLater(new Runnable() {
 										@Override
 										public void run() {
-											window.setScene(makeLoginScene());
-											loginHandler(); // event handler
+											registration_scene.user_is_taken(cmd.input);
 										}
-								}); // Display primaryStage
+									}); // Display invalid
+								}
 							}
-							else {
+							else if(cmd.command.equals("login")) { // login command
+								if(cmd.input.equals("incorrect user/password")) {
+									Platform.runLater(new Runnable() {
+										@Override
+										public void run() {
+											login_scene.incorrect_login(cmd.input);
+										}
+									});
+								}
+								else {
+									Platform.runLater(new Runnable() {
+										@Override
+										public void run() {
+											clientUsername = cmd.get_username();
+											make_auction_scene(window, cmd.get_username(), quitBtn);
+										}
+									});
+								}
+							}
+							else if(cmd.command.equals("itemList")) {
 								Platform.runLater(new Runnable() {
 									@Override
 									public void run() {
-										userTaken = new Label(cmd.input);
-						 				GridPane.setConstraints(userTaken, 1, 0);
-						 				grid3.getChildren().add(userTaken);
-									}
-								}); // Display invalid
-							}
-						}
-						else if(cmd.command.equals("login")) { // login command
-							if(cmd.input.equals("incorrect user/password")) {
-								Platform.runLater(new Runnable() {
-									@Override
-									public void run() {
-										invalidLog = new Label(cmd.input);
-										GridPane.setConstraints(invalidLog, 1, 2);
-										grid1.getChildren().add(invalidLog);
+										String[] auction_items = cmd.auction_arr;
+										auction_scene.items.getItems().addAll(auction_items);
+										auction_scene.items.setValue(auction_scene.items.getItems().get(0));
 									}
 								});
 							}
-							else {
+							else if(cmd.command.equals("message")) { // message command
 								Platform.runLater(new Runnable() {
 									@Override
 									public void run() {
-										clientUsername = cmd.username;
-										makeAuctionScene();
+										auction_scene.chatDisplay.appendText(cmd.input + "\n");
+										auction_scene.chatInput.clear();
+									}
+								});
+							}
+							else if(cmd.command.equals("logout")) { // logout command
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										clientUsername = "";
+										make_login_scene(window, quitBtn);
+									}
+								});
+							}
+							else if(cmd.command.equals("itemInfo")) {
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										String[] product_info = cmd.auction_arr;
+//										System.out.println(Arrays.toString(product_info));
+										auction_scene.highestBid.setText("$" + product_info[1]);
+										auction_scene.currItemDesc.setText(product_info[2]);
+										auction_scene.currItemStartDate.setText(product_info[3]);
+										auction_scene.currItemEndDate.setText(product_info[4]);
 									}
 								});
 							}
 						}
-						else if(cmd.command.equals("itemList")) {
-							Platform.runLater(new Runnable() {
-								@Override
-								public void run() {
-									String[] auction_items = cmd.auction_arr;
-//									System.out.println(Arrays.toString(auction_items));
-									items.getItems().addAll(auction_items);
-									items.setValue(items.getItems().get(0));
-									
-//									System.out.println(items.getItems());
-//									Gson gsonMessage = new Gson();
-//									cmd.input = items.getItems().get(0);
-//									cmd.command = "itemInfo";
-//									sendToServer(gsonMessage.toJson(cmd));
-								}
-							});
-						}
-						else if(cmd.command.equals("message")) { // message command
-							Platform.runLater(new Runnable() {
-								@Override
-								public void run() {
-									chatDisplay.appendText(cmd.input + "\n");
-									chatInput.clear();
-								}
-							});
-						}
-						else if(cmd.command.equals("logout")) { // logout command
-							Platform.runLater(new Runnable() {
-								@Override
-								public void run() {
-									clientUsername = "";
-									clientPassword = "";
-									window.setScene(makeLoginScene());
-									loginHandler(); // event handler
-								}
-							});
-						}
-						else if(cmd.command.equals("itemInfo")) {
-							Platform.runLater(new Runnable() {
-								@Override
-								public void run() {
-									String[] product_info = cmd.auction_arr;
-									highestBid.setText("$" + product_info[1]);
-									currItemDesc.setText(product_info[2]);
-								}
-							});
-						}
+					} catch(IOException e) {
+						System.exit(0); // if server crashes, just close.
 					}
-				} catch(IOException e) {
-					System.exit(0); // if server crashes, just close.
 				}
-			}
-		});
-		
-		// create a writer task
-		Thread writerThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				while(true) {
-					String input = consoleInput.nextLine();
-					Command cmd = new Command(input, "message", 0);
-					Gson gsonMessage = new Gson();
-					sendToServer(gsonMessage.toJson(cmd));
+			});
+			
+			// create a writer task
+			Thread writerThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					while(true) {
+						String input = consoleInput.nextLine();
+						Command cmd = new Command(input, "message", clientPort);
+						sendToServer(cmd);
+					}
 				}
-			}
-		});
-		
-		// run reading and writing tasks
-		readerThread.start();
-		writerThread.start();
+			});
+			
+			// run reading and writing tasks
+			readerThread.start();
+			writerThread.start();
+		}
+		catch(ConnectException e){
+			System.out.println("\u001B[31m" + "Could not find host \"" + HOST + "\":");
+			System.out.println(e + "\u001B[0m");
+		}
 	}
 
 	@Override
@@ -276,389 +229,187 @@ public class Client extends Application{
 		// initialize stage
 		window = primaryStage;
 		window.setTitle("Auction Client - login");
-		
-		// Initialize primary condition of primary Stage
-		Scene scene1 = makeLoginScene();
-		
-		// Start first GUI
-		loginHandler(); // event handler
-		window.setScene(scene1); // Display scene1 at beginning
+		make_login_scene(window, quitBtn);
 		window.show();
 	}
-	
-	private Scene makeLoginScene() {
-		// Login window registration
-		window.setTitle("Chat Room - login");
+
+	private void make_login_scene(Stage window, Button quitBtn) { // button set up
 		
-		// grid1 scene format
-		grid1 = new GridPane();
-		grid1.setPadding(new Insets(10, 10, 10, 10));
-		grid1.setVgap(10);
-		grid1.setHgap(10);
+		// set title
+		window.setTitle("Jan's Auction - Login");
 		
-		// user name field
-		userLbl = new Label("username:");
-		GridPane.setConstraints(userLbl, 0, 0);
-		username = new TextField();
-		username.setPromptText("username");
-		GridPane.setConstraints(username, 1, 0);
-		grid1.getChildren().addAll(userLbl, username);
-		
-		// password field
-		passLbl = new Label("password:");
-		GridPane.setConstraints(passLbl, 0, 1);
-		password = new TextField();
-		password.setPromptText("password");
-		GridPane.setConstraints(password, 1, 1);
-		grid1.getChildren().addAll(passLbl, password);
-		
-		// login button
-		loginBtn = new Button("login");
-		GridPane.setConstraints(loginBtn, 0, 2);
-		grid1.getChildren().add(loginBtn);
-		
-		// login as guest button
-		registerBtn = new Button("register");
-		GridPane.setConstraints(registerBtn, 0, 3);
-		grid1.getChildren().add(registerBtn);
-		
-		// quit button
-		quitBtn1 = new Button("quit");
-		GridPane.setConstraints(quitBtn1, 0, 4);
-		grid1.getChildren().add(quitBtn1);
+		// make scene
+		login_scene = new Login_Scene(quitBtn);
 		
 		// fill stage with scene
-		return new Scene(grid1, 300, 200);
-	}
-
-	private void loginHandler() { // button set up
+		window.setScene(new Scene(login_scene.make_scene(), 300, 200));
 		
-		// login
-		loginBtn.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up login
+		login_scene.loginBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				if(!username.getText().trim().equals("") && !password.getText().trim().equals("")) {
-					Gson gsonMessage = new Gson();
-					cmd.command = "login";
-					cmd.username = username.getText();
-					cmd.password = password.getText();
-					sendToServer(gsonMessage.toJson(cmd));
+				if(!login_scene.username.getText().trim().equals("") && !login_scene.password.getText().trim().equals("")) {
+					cmd.setCommand("login");
+					cmd.port = clientPort;
+					cmd.tryToLogin(login_scene.username.getText(), login_scene.password.getText());
+					sendToServer(cmd);
 				}
 				else
 					System.out.println("Cannot login user, one or more fields missing.");
 			}
 		});
 		
-		// login and pressed
-		loginBtn.setOnKeyPressed(e -> {
+		// set-up login and pressed
+		login_scene.loginBtn.setOnKeyPressed(e -> {
 			if(e.getCode() == KeyCode.ENTER) {
-				loginBtn.fire(); // TEST THIS
+				login_scene.loginBtn.fire(); // TEST THIS
 			}
 		});
 		
-		// password enter
-		password.setOnKeyPressed(e -> {
-			if(e.getCode() == KeyCode.ENTER && !username.getText().equals("") && !password.getText().equals("")) {
-				Gson gsonMessage = new Gson();
-				cmd.command = "login";
-				cmd.username = username.getText();
-				cmd.password = password.getText();
-				sendToServer(gsonMessage.toJson(cmd)); // register button
+		// set-up password enter
+		login_scene.password.setOnKeyPressed(e -> {
+			if(e.getCode() == KeyCode.ENTER && !login_scene.username.getText().equals("") && !login_scene.password.getText().equals("")) {
+				login_scene.loginBtn.fire();
 			}
 		});
 		
-		// register
-		registerBtn.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up register
+		login_scene.registerBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				makeRegisterScene();
+				make_registration_scene(window, quitBtn);
 			}
 		});
 		
-		// register pressed
-		registerBtn.setOnKeyPressed(e -> {
+		// set-up register pressed
+		login_scene.registerBtn.setOnKeyPressed(e -> {
 			if(e.getCode() == KeyCode.ENTER) {
-				registerBtn.fire(); // TEST THIS
+				login_scene.registerBtn.fire();
 			}
 		});
 		
-		// quit button
-		quitBtn1.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up quit button
+		login_scene.quitBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				try {
-					Gson gsonMessage = new Gson();
-					sendToServer(gsonMessage.toJson(new Command(null, "quit", 0)));
+					sendToServer(new Command(null, "quit", clientPort));
 					fromServer.close();
 					toServer.close();
 					System.exit(0);
-				} catch (IOException e) {
+				}
+				catch(Exception e) {
+					System.out.println("Exiting...");
 					System.exit(0); // just exit
 				}
 				window.close();
 			}
 		});
 		
-		// exit button
+		// set-up exit button
 		window.setOnCloseRequest(e -> {
-			quitBtn1.fire();
+			quitBtn.fire();
 		});
 	}
 
-	private void makeRegisterScene() {
-		// Registration window title
-		window.setTitle("Chat Room - Registration");
+	private void make_registration_scene(Stage window, Button quitBtn) {
+		// set title
+		window.setTitle("Jan's Auction - Registration");
 		
-		// grid1 scene format
-		grid3 = new GridPane();
-		grid3.setPadding(new Insets(10, 10, 10, 10));
-		grid3.setVgap(10);
-		grid3.setHgap(10);
-		
-		// user name field
-		usernameRegister = new TextField();
-		usernameRegister.setPromptText("new username");
-		GridPane.setConstraints(usernameRegister, 0, 0);
-	
-		// password field
-		passwordRegister = new TextField();
-		passwordRegister.setPromptText("new password");
-		GridPane.setConstraints(passwordRegister, 0, 1);
-		
-		// password field
-		confirmPasswordRegister = new TextField();
-		confirmPasswordRegister.setPromptText("confirm password");
-		GridPane.setConstraints(confirmPasswordRegister, 0, 2);
-		
-		// register button
-	    registerMeBtn = new Button("register me");
-	    GridPane.setConstraints(registerMeBtn, 0, 3);
-	 	registerMeBtn.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				if(!usernameRegister.getText().equals("") && !passwordRegister.getText().equals("") && !confirmPasswordRegister.getText().equals("")) {
-					if(passwordRegister.getText().equals(confirmPasswordRegister.getText())) {
-						Gson gsonMessage = new Gson();
-	 					cmd.command = "register";
-	 					cmd.username = usernameRegister.getText();
-	 					cmd.password = passwordRegister.getText();
-	 					sendToServer(gsonMessage.toJson(cmd));
-					}
-					else {
-						missmatchedPassword = new Label("passwords must match");
-						GridPane.setConstraints(missmatchedPassword, 1, 2);
-						grid3.getChildren().add(missmatchedPassword);
-					}
-				}
-			}
-		});
-	    
-	    // put labels, buttons, and text fields in grid
-	    grid3.getChildren().addAll(usernameRegister, passwordRegister, confirmPasswordRegister, registerMeBtn, quitBtn1);
-	    
-	    // fill stage with scene
-	    window.setScene(new Scene(grid3, 400, 200));
-	}
-
-	private void makeAuctionScene() {
-		// Chat Room window title
-		window.setTitle("Jan's Auction - Welcome, " + username.getText() + "!");
-		
-		// grid2 scene format
-		grid2 = new GridPane();
-		grid2.setPadding(new Insets(10, 10, 10, 10));
-		grid2.setVgap(10);
-		grid2.setHgap(10);
-		
-		// bid label
-		Label bidLabel = new Label("Items to Bid: ");
-		bidLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(bidLabel, 0, 0);
-		grid2.getChildren().add(bidLabel);
-		
-		// drop menu of items to bid
-		Gson gsonMessage = new Gson();
-		cmd.command = "itemList";
-		sendToServer(gsonMessage.toJson(cmd));	// access the auction items
-		items = new ChoiceBox<String>();
-		GridPane.setConstraints(items, 1, 0);
-		grid2.getChildren().add(items);
-		
-		// amount of bid field
-		bidValLbl = new Label("$");
-		GridPane.setConstraints(bidValLbl, 2, 0);
-		bidValue = new TextField();
-		bidValue.setPromptText("value of bid");
-		GridPane.setConstraints(bidValue, 3, 0);
-		bidBtn = new Button("bid item!");
-		GridPane.setConstraints(bidBtn, 4, 0);
-		grid2.getChildren().addAll(bidValLbl, bidValue, bidBtn);
-		
-		// item description
-		currItemDescLabel = new Label("Description:");
-		currItemDescLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(currItemDescLabel, 0, 1);
-		currItemDesc = new Label("example description of this product.");
-		GridPane.setConstraints(currItemDesc, 1, 1);
-		GridPane.setColumnSpan(currItemDesc, 3);
-		grid2.getChildren().addAll(currItemDescLabel, currItemDesc);
-		
-		// bid creation date
-		currItemStartDateLabel = new Label("Start Date:");
-		currItemStartDateLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(currItemStartDateLabel, 0, 2);
-		currItemStartDate = new Label("0000-00-00 00:00:00");
-		GridPane.setConstraints(currItemStartDate, 1, 2);
-		grid2.getChildren().addAll(currItemStartDateLabel, currItemStartDate);
-		
-		// bid end date
-		currItemEndDateLabel = new Label("End Date:");
-		currItemEndDateLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(currItemEndDateLabel, 0, 3);
-		currItemEndDate = new Label("0000-00-00 00:00:00");
-		GridPane.setConstraints(currItemEndDate, 1, 3);
-		grid2.getChildren().addAll(currItemEndDateLabel, currItemEndDate);
-		
-		// current Highest Bid Label
-		highestBidMessage = new Label("Highest Bid:");
-		highestBidMessage.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(highestBidMessage, 0, 4);
-		highestBid = new Label("n/a");
-		GridPane.setConstraints(highestBid, 1, 4);
-		grid2.getChildren().addAll(highestBidMessage, highestBid);
-		
-		// client's Current Bid Label
-		yourBidMessage = new Label("Your Bid:");
-		yourBidMessage.setStyle("-fx-font-weight: bold");
-		GridPane.setConstraints(yourBidMessage, 0, 5);
-		myBid = new Label("none");
-		GridPane.setConstraints(myBid, 1, 5);
-		grid2.getChildren().addAll(yourBidMessage, myBid);
-		
-		// logout button
-		logoutBtn = new Button("logout");
-		GridPane.setConstraints(logoutBtn, 0, 6);
-		grid2.getChildren().add(logoutBtn);
-		
-		// quit button
-		quitBtn2 = new Button("quit");
-		GridPane.setConstraints(quitBtn2, 1, 6);
-		grid2.getChildren().add(quitBtn2);
-		
-		// bid log (history)
-		historyLabel = new Label("Bidding Log");
-		historyLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setRowIndex(historyLabel, 7);
-		GridPane.setColumnSpan(historyLabel, 5);
-		GridPane.setHalignment(historyLabel, javafx.geometry.HPos.CENTER);
-		historyDisplay = new TextArea();
-		historyDisplay.setPrefHeight(100.0);
-		historyDisplay.setEditable(false);
-		GridPane.setRowIndex(historyDisplay, 9);
-		GridPane.setColumnSpan(historyDisplay, 5);
-//		GridPane.setFillWidth(historyDisplay, true);
-//		historyBtn = new Button("history");
-//		GridPane.setConstraints(historyBtn, 0, 4);
-		grid2.getChildren().addAll(historyLabel, historyDisplay);
-		
-		// current highest bid display 
-//		bidDisplay = new TextArea("Current Highest Bid");
-//		bidDisplay.setPrefHeight(40.0);
-//		bidDisplay.setEditable(false);
-//		GridPane.setRowIndex(bidDisplay, 8);
-//		GridPane.setColumnSpan(bidDisplay, 4);
-//		GridPane.setFillWidth(bidDisplay, true);
-//		grid2.getChildren().add(bidDisplay);
-		
-		// chat display
-		chatLabel = new Label("Chat");
-		chatLabel.setStyle("-fx-font-weight: bold");
-		GridPane.setRowIndex(chatLabel, 10);
-		GridPane.setColumnSpan(chatLabel, 5);
-		GridPane.setHalignment(chatLabel, javafx.geometry.HPos.CENTER);
-		chatDisplay = new TextArea();
-		chatDisplay.setPrefHeight(80.0);
-		chatDisplay.setEditable(false);
-		GridPane.setRowIndex(chatDisplay, 11);
-		GridPane.setColumnSpan(chatDisplay, 5);
-//		GridPane.setFillWidth(chatDisplay, true);
-		grid2.getChildren().addAll(chatLabel, chatDisplay);
-		
-		// text display 
-		chatInput = new TextArea("");
-		chatInput.setPrefHeight(55.0);
-		chatInput.setEditable(true);
-		chatInput.setWrapText(true);
-		GridPane.setRowIndex(chatInput, 12);
-		GridPane.setColumnSpan(chatInput, 5);
-		GridPane.setFillWidth(chatInput, true);
-		grid2.getChildren().add(chatInput);
-		
-//		refresh = new Button("refresh");
-//		GridPane.setConstraints(refresh, 3, 2);
+		// make scene
+		registration_scene = new Registration_Scene(quitBtn);
 		
 		// fill stage with scene
-		window.setScene(new Scene(grid2, 500, 500));
+		window.setScene(new Scene(registration_scene.make_scene(), 400, 220));
 		
-		// start handler
-		auctionHandler();
-		
+		// set-up registration button
+	 	registration_scene.registerMeBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				if(!registration_scene.username.getText().equals("") && !registration_scene.password.getText().equals("") && !registration_scene.confirmPassword.getText().equals("")) {
+					if(registration_scene.password.getText().equals(registration_scene.confirmPassword.getText())) {
+	 					cmd.command = "register";
+	 					cmd.set_username(registration_scene.username.getText());
+	 					cmd.set_password(registration_scene.password.getText());
+	 					sendToServer(cmd);
+					}
+					else {
+						registration_scene.password_missmatch();
+					}
+				}
+			}
+		});
+	 	
+	 	registration_scene.backToLogin.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				make_login_scene(window, quitBtn);
+			}
+		});
 	}
 
-	private void auctionHandler() {
+	private void make_auction_scene(Stage window, String user, Button quitBtn) {
 		
-		// exit button
+		// set title
+		window.setTitle("Jan's Auction - Welcome, " + user + "!");
+		
+		// make scene
+		auction_scene = new Auction_Scene(quitBtn);
+		
+		// fill stage with scene
+		window.setScene(new Scene(auction_scene.make_scene(), 500, 500));
+		
+		// request item list from server
+		cmd.command = "itemList";
+		sendToServer(cmd);	// access the auction items
+		
+		// set-up exit button
 		window.setOnCloseRequest(e -> {
-			quitBtn2.fire();
+			auction_scene.quitBtn.fire();
 		});
 		
-		// item selection
-		items.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up item selection
+		auction_scene.items.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				Gson gsonMessage = new Gson();
-				cmd.input = items.getValue();
+				cmd.input = auction_scene.items.getValue();
 				cmd.command = "itemInfo";
-				sendToServer(gsonMessage.toJson(cmd));
+				sendToServer(cmd);
 			}
 		});
 		
-		// logout button
-		logoutBtn.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up logout button
+		auction_scene.logoutBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				Gson gsonMessage = new Gson();
 				cmd.command = "logout";
-				sendToServer(gsonMessage.toJson(cmd));
+				sendToServer(cmd);
 			}
 		});
 		
-		// chat button
-		chatInput.setOnKeyPressed(e -> { // at "sendToServer" it erases clientUsername for some reason!
+		// set-up chat button
+		auction_scene.chatInput.setOnKeyPressed(e -> {
 			if(e.getCode() == KeyCode.ENTER) {
-				String message = chatInput.getText().trim();
+				String message = auction_scene.chatInput.getText().trim();
 				if(!message.equals("")) {
-					Gson gsonMessage = new Gson();
-					cmd.username = clientUsername;
+					cmd.set_username(clientUsername);
 					cmd.command = "message";
 					cmd.input = message;
-					sendToServer(gsonMessage.toJson(cmd)); // register button
+					sendToServer(cmd); // register button
 				}
 			}
 		});
 		
-		// quit button
-		quitBtn2.setOnAction(new EventHandler<ActionEvent>() {
+		// set-up quit button
+		auction_scene.quitBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				
-				Gson gsonMessage = new Gson();
 				cmd.command = "logout";
-				sendToServer(gsonMessage.toJson(cmd));
+				sendToServer(cmd);
 				
 				try {
-					gsonMessage = new Gson();
-					sendToServer(gsonMessage.toJson(new Command(null, "quit", 0)));
+					sendToServer(new Command(null, "quit", clientPort));
 					fromServer.close();
 					toServer.close();
 					System.exit(0);
