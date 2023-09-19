@@ -4,6 +4,7 @@
 
 package Client;
 
+import java.util.concurrent.TimeUnit;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,6 +12,7 @@ import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import com.google.gson.Gson;
@@ -27,7 +29,7 @@ import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
 
 
-public class Client extends Application{
+public class Client extends Application {
 	
 	// Socket Variables
 	private static Socket socket;
@@ -44,7 +46,7 @@ public class Client extends Application{
 	private static Registration_Scene registration_scene;
 	
 	// Client Information Variables
-	public static String clientUsername = "";
+	public volatile String clientUsername = "";
 	private static int clientPort = 0;
 	public static Command cmd = new Command(null, null, 0);
 	
@@ -78,9 +80,15 @@ public class Client extends Application{
 	
 	protected void sendToServer(Command cmd) {		
 		Gson gsonMessage = (new GsonBuilder()).create();
-		System.out.println("Client Sent: " + gsonMessage.toJson(cmd));
-		toServer.println(gsonMessage.toJson(cmd));
-		toServer.flush();
+//		System.out.println("Client Sent: " + gsonMessage.toJson(cmd));
+		try {
+			toServer.println(gsonMessage.toJson(cmd));
+			toServer.flush();
+		}
+		catch(Exception e) {
+			System.out.println("\u001B[31m" + "Could not send to \"" + HOST + "\":");
+			System.out.println(e + "\u001B[0m");
+		}
 	}
 	
 	protected void loginToServer(String jsonLoginCommand) {
@@ -112,7 +120,7 @@ public class Client extends Application{
 					try { // wait for output from server
 						while((input = fromServer.readLine()) != null) {
 							
-							System.out.println("Client Received: " + input);
+//							System.out.println("Client Received: " + input);
 							
 							// obtain message from json
 							cmd = new Gson().fromJson(input, Command.class);
@@ -120,27 +128,29 @@ public class Client extends Application{
 							if(cmd.command.equals("register")) { // register command
 								if(cmd.input.equals("registration successful")) {
 									Platform.runLater(new Runnable() {
-											@Override
-											public void run() {
-												make_login_scene(window, quitBtn);
-											}
+										@Override
+										public void run() {
+											make_login_scene(window, quitBtn);
+										}
 									}); // Display primaryStage
 								}
 								else {
 									Platform.runLater(new Runnable() {
 										@Override
 										public void run() {
-											registration_scene.user_is_taken(cmd.input);
+											registration_scene.user_taken(cmd.input);
 										}
 									}); // Display invalid
 								}
 							}
 							else if(cmd.command.equals("login")) { // login command
-								if(cmd.input.equals("incorrect user/password")) {
+								if(!cmd.input.equals("incorrect user/password")) {
 									Platform.runLater(new Runnable() {
 										@Override
 										public void run() {
-											login_scene.incorrect_login(cmd.input);
+											clientUsername = cmd.get_username();
+//											System.out.println(clientUsername);
+											make_auction_scene(window, cmd.get_username(), quitBtn);
 										}
 									});
 								}
@@ -148,11 +158,24 @@ public class Client extends Application{
 									Platform.runLater(new Runnable() {
 										@Override
 										public void run() {
-											clientUsername = cmd.get_username();
-											make_auction_scene(window, cmd.get_username(), quitBtn);
+											login_scene.incorrect_login();
 										}
 									});
 								}
+							}
+							else if(cmd.command.equals("guest")) {
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										if(!cmd.input.equals("fail")) {
+											clientUsername = cmd.get_username();
+											make_auction_scene(window, cmd.get_username(), quitBtn);
+										}
+										else {
+											System.out.println("Unable to generate guest account.");
+										}
+									}
+								});
 							}
 							else if(cmd.command.equals("itemList")) {
 								Platform.runLater(new Runnable() {
@@ -161,6 +184,14 @@ public class Client extends Application{
 										String[] auction_items = cmd.auction_arr;
 										auction_scene.items.getItems().addAll(auction_items);
 										auction_scene.items.setValue(auction_scene.items.getItems().get(0));
+									}
+								});
+							}
+							else if(cmd.command.equals("bid")) {
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										System.out.println(cmd.input);
 									}
 								});
 							}
@@ -177,6 +208,7 @@ public class Client extends Application{
 								Platform.runLater(new Runnable() {
 									@Override
 									public void run() {
+//										updateThread.interrupt();
 										clientUsername = "";
 										make_login_scene(window, quitBtn);
 									}
@@ -187,7 +219,7 @@ public class Client extends Application{
 									@Override
 									public void run() {
 										String[] product_info = cmd.auction_arr;
-//										System.out.println(Arrays.toString(product_info));
+										System.out.println(Arrays.toString(product_info));
 										auction_scene.highestBid.setText("$" + product_info[1]);
 										auction_scene.currItemDesc.setText(product_info[2]);
 										auction_scene.currItemStartDate.setText(product_info[3]);
@@ -214,7 +246,30 @@ public class Client extends Application{
 				}
 			});
 			
+			// create an update task
+			Thread updateThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					while(true) {
+						try {
+							if(!clientUsername.equals("")) {
+								if(auction_scene != null) {
+									cmd.input = auction_scene.items.getValue();
+									cmd.command = "itemInfo";
+									sendToServer(cmd);
+								}
+								TimeUnit.SECONDS.sleep(1);
+							}
+						} catch (InterruptedException e) {
+							System.out.println("Time failed");
+//							System.exit(0);
+						}
+					}
+				}
+			});
+			
 			// run reading and writing tasks
+			updateThread.start();
 			readerThread.start();
 			writerThread.start();
 		}
@@ -242,20 +297,29 @@ public class Client extends Application{
 		login_scene = new Login_Scene(quitBtn);
 		
 		// fill stage with scene
-		window.setScene(new Scene(login_scene.make_scene(), 300, 200));
+		window.setScene(new Scene(login_scene.make_scene()));
 		
 		// set-up login
 		login_scene.loginBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				if(!login_scene.username.getText().trim().equals("") && !login_scene.password.getText().trim().equals("")) {
+				
+				String reg_user = login_scene.username.getText().trim();
+				String reg_pass = login_scene.password.getText().trim();
+				
+				if(!reg_user.equals("") && !reg_pass.equals("")) {
+					
+					login_scene.empty_field_clear();
+					
 					cmd.setCommand("login");
 					cmd.port = clientPort;
 					cmd.tryToLogin(login_scene.username.getText(), login_scene.password.getText());
 					sendToServer(cmd);
 				}
-				else
-					System.out.println("Cannot login user, one or more fields missing.");
+				else {
+					login_scene.empty_field();
+					login_scene.incorrect_login_clear();
+				}
 			}
 		});
 		
@@ -266,9 +330,19 @@ public class Client extends Application{
 			}
 		});
 		
+		// set-up guest login button
+		login_scene.guestLoginBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				cmd.setCommand("guest");
+				cmd.port = clientPort;
+				sendToServer(cmd);
+			}
+		});
+		
 		// set-up password enter
 		login_scene.password.setOnKeyPressed(e -> {
-			if(e.getCode() == KeyCode.ENTER && !login_scene.username.getText().equals("") && !login_scene.password.getText().equals("")) {
+			if(e.getCode() == KeyCode.ENTER) {
 				login_scene.loginBtn.fire();
 			}
 		});
@@ -320,22 +394,41 @@ public class Client extends Application{
 		registration_scene = new Registration_Scene(quitBtn);
 		
 		// fill stage with scene
-		window.setScene(new Scene(registration_scene.make_scene(), 400, 220));
+//		window.setScene(new Scene(registration_scene.make_scene(), 400, 220));
+		window.setScene(new Scene(registration_scene.make_scene()));
 		
 		// set-up registration button
 	 	registration_scene.registerMeBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				if(!registration_scene.username.getText().equals("") && !registration_scene.password.getText().equals("") && !registration_scene.confirmPassword.getText().equals("")) {
-					if(registration_scene.password.getText().equals(registration_scene.confirmPassword.getText())) {
-	 					cmd.command = "register";
-	 					cmd.set_username(registration_scene.username.getText());
-	 					cmd.set_password(registration_scene.password.getText());
+				
+				String reg_user = registration_scene.username.getText().trim();
+				String reg_pass_1 = registration_scene.password.getText().trim();
+				String reg_pass_2 = registration_scene.confirmPassword.getText().trim();
+				
+				if(!reg_user.equals("") && !reg_pass_1.equals("") && !reg_pass_2.equals("")) {
+					
+					registration_scene.empty_field_clear();
+					
+					if(reg_pass_1.equals(reg_pass_2)) { // passwords match
+						
+						registration_scene.user_taken_clear();
+						registration_scene.password_missmatch_clear();
+						
+						cmd.command = "register";
+	 					cmd.set_username(reg_user);
+	 					cmd.set_password(reg_pass_1);
 	 					sendToServer(cmd);
 					}
-					else {
+					else { // password mismatch
+						registration_scene.user_taken_clear();
 						registration_scene.password_missmatch();
 					}
+				}
+				else { // empty fields
+					registration_scene.user_taken_clear();
+					registration_scene.password_missmatch_clear();
+					registration_scene.empty_field();
 				}
 			}
 		});
@@ -357,7 +450,8 @@ public class Client extends Application{
 		auction_scene = new Auction_Scene(quitBtn);
 		
 		// fill stage with scene
-		window.setScene(new Scene(auction_scene.make_scene(), 500, 500));
+		window.setScene(new Scene(auction_scene.make_scene()));
+		window.setWidth(600);
 		
 		// request item list from server
 		cmd.command = "itemList";
@@ -375,6 +469,27 @@ public class Client extends Application{
 				cmd.input = auction_scene.items.getValue();
 				cmd.command = "itemInfo";
 				sendToServer(cmd);
+			}
+		});
+		
+		// set-up bidding button
+		auction_scene.bidBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				String biddingValue = auction_scene.bidValue.getText();
+				if(!biddingValue.equals("")) {
+					try {
+						biddingValue = String.format("%.2f", Double.parseDouble(biddingValue));
+//						System.out.println(biddingValue);
+						cmd.input = biddingValue;
+						cmd.item = auction_scene.items.getValue();
+						cmd.command = "bid";
+						sendToServer(cmd);
+					}
+					catch(Exception e) {
+						System.out.println("Not a double");
+					}
+				}
 			}
 		});
 		

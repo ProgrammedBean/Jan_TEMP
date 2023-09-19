@@ -1,0 +1,81 @@
+
+.root {
+	/* Background Style */
+	-fx-background-color: #222222;
+}
+
+.label {
+	/* Font Style */
+	-fx-font-family: "Arial, Helvetica, sans-serif";
+	-fx-font-size: 15 pt;
+	-fx-font-weight: bold;
+	-fx-text-fill: #FFFFFF;
+}
+
+.text-input {
+	/* Border Style */
+	-fx-border-radius: 0;
+	-fx-border-color: #000000;
+	
+	/* Background Style */
+	-fx-background-color: #000000;
+	
+	/* Font Style */
+	-fx-font-size: 13 pt;
+	-fx-text-fill: #FFFFFF;
+}
+
+.text-input:focused {
+	/* Border Style */
+	-fx-border-radius: 0;
+	-fx-border-color: #02D8E9;
+	
+	/* Background Style */
+	-fx-background-color: #000000;
+	
+	/* Font Style */
+	-fx-font-size: 13 pt;
+	-fx-text-fill: #02D8E9;
+}
+
+.button {
+	/* Border Style */
+	-fx-border-radius: 5;
+	-fx-border-color: #FFFFFF;
+	
+	/* Background Style */
+	-fx-background-color: #000000;
+	
+	/* Font Style */
+	-fx-font-size: 14 pt;
+	-fx-font-weight: bold;
+	-fx-text-fill: #FFFFFF;
+}
+
+.button:hover {
+	/* Border Style */
+	-fx-border-radius: 5;
+	-fx-border-color: #02D8E9;
+	
+	/* Background Style */
+	-fx-background-color: #000000;
+	
+	/* Font Style */
+	-fx-font-size: 14 pt;
+	-fx-font-weight: bold;
+	-fx-text-fill: #FFFFFF;
+}
+
+.button:pressed {
+	/* Border Style */
+	-fx-border-radius: 5;
+	-fx-border-color: #02D8E9;
+	
+	/* Background Style */
+	-fx-background-color: #FFFFFF;
+	
+	/* Font Style */
+	-fx-font-size: 14 pt;
+	-fx-font-weight: bold;
+	-fx-text-fill: #000000;
+}

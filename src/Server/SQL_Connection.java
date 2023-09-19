@@ -59,6 +59,18 @@ public class SQL_Connection {
 			System.out.println(RED + e + DEFAULT);
 		}
 	}
+	
+	public void exec_mult_sql_cmd(String[] cmds) {
+		try {
+			for(String cmd: cmds)
+				this.st.addBatch(cmd);
+			this.st.executeBatch();
+			
+		} catch (SQLException e) {
+			System.out.println(e);
+		}
+		
+	}
 
 	public String read_one_sql_cmd(String cmd) {
 		ResultSet rs;
@@ -117,7 +129,6 @@ public class SQL_Connection {
 			// return the row array
 			return res_arr;
 		} catch (SQLException e) {
-			e.printStackTrace();
 			return null;
 		}
 	}

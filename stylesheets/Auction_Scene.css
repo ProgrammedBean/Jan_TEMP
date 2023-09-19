@@ -1,0 +1,40 @@
+.root {	
+	/* Background Style */
+	-fx-background-color: #222222;
+}
+
+.choice-box {
+	/* Background Style */
+	-fx-background-color: #000000;
+}
+
+.choice-box > .label {
+	/* Text Style */
+	-fx-font-weight: normal;
+}
+
+.choice-box .context-menu {
+	/* Background Style */
+	-fx-background-color: #000000;
+}
+
+.choice-box .menu-item > .label {
+	/* Text Style of item in the list */
+	-fx-font-weight: normal;
+	-fx-font-size: 13 pt;
+}
+
+.choice-box .menu-item:focused {
+	/* Background Style of focused item in the list */
+	-fx-background-color: #02D8E9;
+}
+
+.choice-box .menu-item:focused > .label {
+	/* Text Style of focused item in the list */
+	-fx-text-fill: #000000;
+	-fx-font-size: 13 pt;
+}
+
+.label-desc {
+	-fx-font-weight: normal;
+}

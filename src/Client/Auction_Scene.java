@@ -9,9 +9,11 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
 public class Auction_Scene {
+	
+	public static final String gen_stylesheet = "General_Scene.css";
+	public static final String auc_stylesheet = "Auction_Scene.css";
 
 	public ChoiceBox<String> items;
-	private Button bidBtn;
 	private Label currItemDescLabel;
 	public Label currItemDesc;
 	private Label currItemStartDateLabel;
@@ -19,10 +21,11 @@ public class Auction_Scene {
 	private Label currItemEndDateLabel;
 	public Label currItemEndDate;
 	private Label bidValLbl;
-	private TextField bidValue;
+	public TextField bidValue;
+	public Button bidBtn;
 	private Label highestBidMessage;
 	private Label yourBidMessage;
-	private Label myBid;
+	public Label myBid;
 	public Label highestBid;
 //	private Button historyBtn;
 	private Label historyLabel;
@@ -49,7 +52,6 @@ public class Auction_Scene {
 		
 		// bid label
 		Label bidLabel = new Label("Items to Bid: ");
-		bidLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(bidLabel, 0, 0);
 		grid.getChildren().add(bidLabel);
 		
@@ -70,42 +72,42 @@ public class Auction_Scene {
 		
 		// item description
 		currItemDescLabel = new Label("Description:");
-		currItemDescLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(currItemDescLabel, 0, 1);
-		currItemDesc = new Label("example description of this product.");
+		currItemDesc = new Label("");
+		currItemDesc.getStyleClass().add("label-desc");
 		GridPane.setConstraints(currItemDesc, 1, 1);
 		GridPane.setColumnSpan(currItemDesc, 3);
 		grid.getChildren().addAll(currItemDescLabel, currItemDesc);
 		
 		// bid creation date
 		currItemStartDateLabel = new Label("Start Date:");
-		currItemStartDateLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(currItemStartDateLabel, 0, 2);
 		currItemStartDate = new Label("0000-00-00 00:00:00");
+		currItemStartDate.getStyleClass().add("label-desc");
 		GridPane.setConstraints(currItemStartDate, 1, 2);
 		grid.getChildren().addAll(currItemStartDateLabel, currItemStartDate);
 		
 		// bid end date
 		currItemEndDateLabel = new Label("End Date:");
-		currItemEndDateLabel.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(currItemEndDateLabel, 0, 3);
 		currItemEndDate = new Label("0000-00-00 00:00:00");
+		currItemEndDate.getStyleClass().add("label-desc");
 		GridPane.setConstraints(currItemEndDate, 1, 3);
 		grid.getChildren().addAll(currItemEndDateLabel, currItemEndDate);
 		
-		// current Highest Bid Label
+		// current highest bid label
 		highestBidMessage = new Label("Highest Bid:");
-		highestBidMessage.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(highestBidMessage, 0, 4);
-		highestBid = new Label("n/a");
+		highestBid = new Label("");
+		highestBid.getStyleClass().add("label-desc");
 		GridPane.setConstraints(highestBid, 1, 4);
 		grid.getChildren().addAll(highestBidMessage, highestBid);
 		
-		// client's Current Bid Label
+		// client's current bid label
 		yourBidMessage = new Label("Your Bid:");
-		yourBidMessage.setStyle("-fx-font-weight: bold");
 		GridPane.setConstraints(yourBidMessage, 0, 5);
 		myBid = new Label("none");
+		myBid.getStyleClass().add("label-desc");
 		GridPane.setConstraints(myBid, 1, 5);
 		grid.getChildren().addAll(yourBidMessage, myBid);
 		
@@ -169,6 +171,10 @@ public class Auction_Scene {
 		
 //		refresh = new Button("refresh");
 //		GridPane.setConstraints(refresh, 3, 2);
+		
+		// add stylesheet to auction scene
+		grid.getStylesheets().add(gen_stylesheet);
+		grid.getStylesheets().add(auc_stylesheet);
 		
 		return grid;
 		

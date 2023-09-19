@@ -38,14 +38,14 @@ public class ClientHandler implements Runnable, Observer {
 //		sendToPortClient(port);
 	}
 	
-	protected void sendToPortClient(int port) {
+	protected void send_to_port_client(int port) {
 		toClient.println(port);
 		toClient.flush();
 	}
 	
-	protected void sendToClient(Command cmd) {		
+	protected void send_to_client(Command cmd) {		
 		Gson gsonMessage = (new GsonBuilder()).create();
-		System.out.println("Server Sent: " + gsonMessage.toJson(cmd));
+//		System.out.println("Server Sent: " + gsonMessage.toJson(cmd));
 		toClient.println(gsonMessage.toJson(cmd));
 		toClient.flush();
 	}
@@ -56,7 +56,7 @@ public class ClientHandler implements Runnable, Observer {
 		try {
 			while((input = fromClient.readLine()) != null) {
 				
-				System.out.println("Server Received: " + input);
+//				System.out.println("Server Received: " + input);
 				
 				// obtain message from json
 				cmd = new Gson().fromJson(input, Command.class);
@@ -74,42 +74,49 @@ public class ClientHandler implements Runnable, Observer {
 					
 					if(user.equals("")) {
 						cmdSend.input = cmd.port + ": " + cmd.input;
-						server.processMessage(gsonMessageSend.toJson(cmdSend));
+						server.process_message(gsonMessageSend.toJson(cmdSend));
 					}
 					else {
 						cmdSend.input = user + ": " + cmd.input;
-						server.processMessage(gsonMessageSend.toJson(cmdSend));
+						server.process_message(gsonMessageSend.toJson(cmdSend));
 					}
 				}
 				
 				// if the command is register attempt
 				if(cmd.command.equals("register")) {
 					String regStatus = "this username is already taken";
-					if(server.registerAttempt(cmd.get_username(), cmd.get_password()))
+					if(server.register_attempt(cmd.get_username(), cmd.get_password()))
 						regStatus = "registration successful";
 					cmd.input = regStatus;
-					sendToClient(cmd);
+					send_to_client(cmd);
 				}
 				
 				// if the command is login attempt
 				if(cmd.command.equals("login")) {
-					if(server.loginAttempt(cmd.get_username(), cmd.get_password())) {
+					if(server.login_attempt(cmd.get_username(), cmd.get_password())) {
 						user = cmd.get_username();
 						cmd.input = "2";
-						sendToClient(cmd);
+						send_to_client(cmd);
 					}
 					else { // attempt failed
 						cmd.input = "incorrect user/password";
-						sendToClient(cmd);
+						send_to_client(cmd);
 					}
 				}
 				
 				// if the command is login guest
 				if(cmd.command.equals("guest")) {
-					int guest = server.loginGuest();
-					user = "Guest_"+port+""+guest;
-					cmd = new Command("Guest_"+port+""+guest, "guest", port);
-					sendToClient(cmd);
+					int guest = server.login_guest("Guest_" + port);
+					if(guest < Integer.MAX_VALUE - 1) {
+						user = "Guest_" + port + guest;
+						cmd.input = "success";
+						cmd.set_username(user);
+						send_to_client(cmd);
+					}
+					else {
+						cmd.input = "fail";
+						send_to_client(cmd);
+					}
 				}
 				
 				// if the command is guestList
@@ -117,14 +124,14 @@ public class ClientHandler implements Runnable, Observer {
 					String auction_items[] = server.get_auction_items();
 					cmd.input = "";
 					cmd.auction_arr = auction_items;
-					sendToClient(cmd);
+					send_to_client(cmd);
 				}
 				
 				// if the command is logout
 				if(cmd.command.equals("logout")) {
 					user = ""; // user field is empty
 					cmd.input = "logout";
-					sendToClient(cmd);
+					send_to_client(cmd);
 				}
 				
 				// if the command is selection
@@ -134,38 +141,49 @@ public class ClientHandler implements Runnable, Observer {
 					cmd.input = "success";
 					if(auction_info == null)
 						cmd.input = "fail";
-					sendToClient(cmd);
+					send_to_client(cmd);
 				}
 				
-				// if the command is a bid
+				// TODO: if the command is a bid
 				if(cmd.command.equals("bid")) {
-					int bidStatus = server.validBid(cmd.input, cmd.item);
-					if(bidStatus == 1) { // invalid (1)
-						cmd.input = "1";
-						sendToClient(cmd);
+					int bidResult = server.bid_attempt(cmd.input, cmd.item, null);
+					if(bidResult == 0) { // SUCCESS
+						// inform 
+						cmd.input = "Your bid was successful!";
+						send_to_client(cmd);
+						// update user auction info
+						cmd.auction_arr = server.get_auction_info_of(cmd.item);
+						cmd.command = "itemInfo";
+						cmd.input = "success";
+						if(cmd.auction_arr == null)
+							cmd.input = "fail";
+						send_to_client(cmd);
 					}
-					else if(bidStatus == 2) { // valid (2)
-						
-						// notify the clients
-						cmd.description = server.getDesc(cmd.item);
-						
-						if(user.equals("")) {
-//							server.processMessage(gsonMessageSend.toJson(cmdSend), ""+cmd.port);
-						}
-						else {
-//							server.processMessage(gsonMessageSend.toJson(cmdSend), user);
-						}
-						
-						// send the client back the results
-						cmd.input = "2";
-						sendToClient(cmd);
-						
+					else if(bidResult == 1) { // FAIL
+						cmd.input = "Bid failed. Bid must be >$1.00 than the current bid.";
+						send_to_client(cmd);
 					}
-					else { // time out (3)
-						// send the client back the results
-						cmd.input = "3";
-						sendToClient(cmd);
+					else if(bidResult == 2) { // FAIL
+						cmd.input = "Bid failed. Auction has expired.";
+						send_to_client(cmd);
 					}
+					else if(bidResult == 3) { // FAIL
+						cmd.input = "Bid failed. Item has been sold. Auction has finalized.";
+						send_to_client(cmd);
+					}
+					else {
+						cmd.input = "Bid failed. An error has occurred.";
+						send_to_client(cmd);
+					}
+//					// notify the clients
+//					cmd.description = server.getDesc(cmd.item);
+//					if(user.equals(""))
+//						server.processMessage(gsonMessageSend.toJson(cmdSend), ""+cmd.port);
+//					else
+//						server.processMessage(gsonMessageSend.toJson(cmdSend), user);
+//					// send the client back the results
+//					cmd.input = "2";
+//					sendToClient(cmd);
 				}
 				
 				// if the command is refresh
@@ -189,12 +207,12 @@ public class ClientHandler implements Runnable, Observer {
 		Command cmd = gsonSend.fromJson((String)arg, Command.class);		
 		// if command is message
 		if(cmd.command.equals("message")) {
-			sendToClient(cmd);
+			send_to_client(cmd);
 		}
 		// if command is update
 		if(cmd.command.equals("bid")) {
 			cmd.command = "update";
-			sendToClient(cmd);
+			send_to_client(cmd);
 		}
 	}
 }

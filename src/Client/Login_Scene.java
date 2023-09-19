@@ -3,17 +3,22 @@ package Client;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
 public class Login_Scene {
+	
+	public static final String stylesheet = "General_Scene.css";
 
 	public Button quitBtn;
 	public TextField username;
 	private static Label userLbl;
-	public TextField password;
+	public PasswordField password;
 	private static Label passLbl;
 	public Button loginBtn;
+	private Label fieldMissing;
+	public Button guestLoginBtn;
 	public Button registerBtn;
 	private static Label invalidLog;
 	
@@ -32,7 +37,7 @@ public class Login_Scene {
 		grid.setHgap(10);
 		
 		// user name field
-		userLbl = new Label("username:");
+		userLbl = new Label("Username:");
 		GridPane.setConstraints(userLbl, 0, 0);
 		username = new TextField();
 		username.setPromptText("username");
@@ -40,9 +45,9 @@ public class Login_Scene {
 		grid.getChildren().addAll(userLbl, username);
 		
 		// password field
-		passLbl = new Label("password:");
+		passLbl = new Label("Password:");
 		GridPane.setConstraints(passLbl, 0, 1);
-		password = new TextField();
+		password = new PasswordField();
 		password.setPromptText("password");
 		GridPane.setConstraints(password, 1, 1);
 		grid.getChildren().addAll(passLbl, password);
@@ -50,26 +55,55 @@ public class Login_Scene {
 		// login button
 		loginBtn = new Button("login");
 		GridPane.setConstraints(loginBtn, 0, 2);
-		grid.getChildren().add(loginBtn);
+		fieldMissing = new Label("Cannot login user, one or more fields missing.");
+		fieldMissing.setStyle("-fx-text-fill: #222222;");
+	    GridPane.setColumnSpan(fieldMissing, 3);
+	    GridPane.setConstraints(fieldMissing, 1, 2);
+		grid.getChildren().addAll(loginBtn, fieldMissing);
 		
 		// incorrect login label
 		invalidLog = new Label(""); // cmd.input
+		invalidLog.setStyle("-fx-text-fill: #222222;");
 		GridPane.setConstraints(invalidLog, 1, 2);
 		grid.getChildren().add(invalidLog);
 		
-		// login as guest button
+		// guest login button
+		guestLoginBtn = new Button("guest login");
+		GridPane.setConstraints(guestLoginBtn, 0, 3);
+		grid.getChildren().add(guestLoginBtn);
+		
+		// register button
 		registerBtn = new Button("register");
-		GridPane.setConstraints(registerBtn, 0, 3);
+		GridPane.setConstraints(registerBtn, 0, 4);
 		grid.getChildren().add(registerBtn);
 		
 		// quit button
-		GridPane.setConstraints(quitBtn, 0, 4);
+		GridPane.setConstraints(quitBtn, 0, 5);
 		grid.getChildren().add(quitBtn);
+		
+		// add stylesheet to login scene
+		grid.getStylesheets().add(stylesheet);
 		
 		return grid;
 	}
 
-	public void incorrect_login(String serverMsg) {
-		invalidLog.setText(serverMsg);
+	public void incorrect_login() {
+		invalidLog.setStyle("-fx-text-fill: #FFFFFF;");
+		invalidLog.setText("incorrect user/password");
+	}
+	
+	public void incorrect_login_clear() {
+		invalidLog.setStyle("-fx-text-fill: #FFFFFF;");
+		invalidLog.setText("");
+	}
+	
+	public void empty_field() {
+		fieldMissing.setStyle("-fx-text-fill: #FFFFFF;");
+		fieldMissing.setText("Cannot login user, one or more fields missing.");
+	}
+	
+	public void empty_field_clear() {
+		fieldMissing.setStyle("-fx-text-fill: #FFFFFF;");
+		fieldMissing.setText("");
 	}
 }
